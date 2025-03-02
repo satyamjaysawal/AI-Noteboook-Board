@@ -1,0 +1,20 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.react-flow__node {
+  @apply font-sans;
+}
+
+.react-flow__edge-path {
+  @apply stroke-2;
+}
+
+.react-flow__handle {
+  @apply bg-blue-500 w-3 h-3 border-2 border-white;
+}
+
+.react-flow__handle:hover {
+  @apply bg-blue-700;
+}
