@@ -1,7 +1,9 @@
 import { io } from 'socket.io-client';
 
-
-const SOCKET_URL ='https://ai-noteboook-board-backend.vercel.app';
+// require('dotenv').config();
+// const SOCKET_URL ='https://ai-noteboook-board-backend.vercel.app';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+console.log('SOCKET_URL: socket.js=================', SOCKET_URL);
 
 let socket;
 

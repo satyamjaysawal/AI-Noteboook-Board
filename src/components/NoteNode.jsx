@@ -3,7 +3,12 @@ import { Handle, Position } from 'reactflow';
 import { Edit2, Trash2, Save, X, Palette, Brain, PlusCircle, Type, Image as ImageIcon } from 'lucide-react';
 import io from 'socket.io-client';
 
-const socket = io('https://ai-noteboook-board-backend.vercel.app');
+
+// const socket = io('https://ai-noteboook-board-backend.vercel.app');
+
+const socket = io(import.meta.env.VITE_SOCKET_URL);
+console.log('SOCKET_URL: NoteNode.jsx=================', import.meta.env.VITE_SOCKET_URL);
+
 
 const NoteNode = ({ data, theme = 'light' }) => {
   const [title, setTitle] = useState(data.title || 'Untitled');

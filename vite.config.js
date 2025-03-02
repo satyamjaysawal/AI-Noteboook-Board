@@ -41,11 +41,30 @@
 // });
 
 
+// import { defineConfig } from 'vite';
+// import react from '@vitejs/plugin-react';
+
+// export default defineConfig({
+//   plugins: [react()],
+//   resolve: {
+//     alias: {
+//       '@': '/src',
+//     },
+//   },
+//   server: {
+//     routes: {
+//       "/*": "index.html" // ✅ Serve `index.html` for all unknown routes (Fixes 404 issue on reload)
+//     },
+//   },
+//   base: "/",
+// });
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import envCompatible from 'vite-plugin-env-compatible';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), envCompatible()], // ✅ Add envCompatible plugin
   resolve: {
     alias: {
       '@': '/src',
@@ -58,6 +77,7 @@ export default defineConfig({
   },
   base: "/",
 });
+
 
 // import { defineConfig } from 'vite';
 // import react from '@vitejs/plugin-react';

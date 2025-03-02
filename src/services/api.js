@@ -1,7 +1,11 @@
 // File: src/services/api.js
 import axios from 'axios';
+// require('dotenv').config();
 
-const API_URL = 'https://ai-noteboook-board-backend.vercel.app/api';
+// const API_URL = 'http://localhost:5000/api';
+// const API_URL = 'https://ai-noteboook-board-backend.vercel.app/api';
+const API_URL =  import.meta.env.VITE_API_URL;
+console.log('API_URL: api.js=================', API_URL);
 
 // Create axios instance with base URL
 const api = axios.create({
