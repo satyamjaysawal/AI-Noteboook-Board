@@ -2,7 +2,9 @@ import { configureStore, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
 
-const API_URL = 'https://ai-noteboook-board-backend.vercel.app';
+// const API_URL = 'https://ai-noteboook-board-backend.vercel.app';
+const API_URL = import.meta.env.VITE_API_URL;
+console.log('API_URL: store.js=================', API_URL);
 
 // Redux slice for notes
 const noteSlice = createSlice({
