@@ -12,6 +12,10 @@ AI-NoteBook-Board-Backend-GitHub: [https://github.com/satyamjaysawal/AI-Notebooo
 
 ![image](https://github.com/user-attachments/assets/b59c5279-3b6a-4d29-be8d-b42c0c74b703)
 
+![image](https://github.com/user-attachments/assets/d245c4a3-baac-4a3d-ab40-a91829715283)
+
+![image](https://github.com/user-attachments/assets/a9975da7-5dcd-45c2-9c66-307ec6118bc2)
+
 
 # AI-NoteBook-Board Application
 
