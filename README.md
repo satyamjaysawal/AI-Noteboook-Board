@@ -9,9 +9,11 @@ AI-NoteBook-Board-Frontend-GitHub: [https://github.com/satyamjaysawal/AI-Noteboo
 
 AI-NoteBook-Board-Backend-GitHub: [https://github.com/satyamjaysawal/AI-Noteboook-Board-Backend.git](https://github.com/satyamjaysawal/AI-Noteboook-Board-Backend.git)
 ****
+![image](https://github.com/user-attachments/assets/ccccafcc-0f02-48e1-88e8-ba3e3d524840)
 
 
-![image](https://github.com/user-attachments/assets/d245c4a3-baac-4a3d-ab40-a91829715283)
+![image](https://github.com/user-attachments/assets/0b85f6b2-11a9-41a3-812c-a447d61f1038)
+
 
 ![image](https://github.com/user-attachments/assets/a9975da7-5dcd-45c2-9c66-307ec6118bc2)
 
