@@ -1,22 +1,12 @@
 
 AI-NoteBook-Board Application UI Link : [https://ai-noteboook-board.onrender.com](https://ai-noteboook-board.onrender.com)
-****
-
-
-
-
-
-
-
-
-
 
 
 ****
+
+
 ****
 
-
----
 
 # NoteFlow - Collaborative Note-Taking Application
 
