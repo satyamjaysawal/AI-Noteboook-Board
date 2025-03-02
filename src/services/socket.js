@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 
-// Use VITE_SOCKET_URL from .env, fallback to VITE_SERVER_URL, then to localhost
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+
+const SOCKET_URL ='https://ai-noteboook-board-backend.vercel.app';
 
 let socket;
 
