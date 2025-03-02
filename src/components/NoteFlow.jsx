@@ -6,7 +6,7 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   Panel,
-  MiniMap,
+  MiniMap
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import NoteNode from './NoteNode';
@@ -24,8 +24,7 @@ import {
   ZoomOut,
   Save,
   AlertTriangle,
-  RefreshCw,
-  BookOpen,
+  RefreshCw
 } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
@@ -36,21 +35,31 @@ const connectionLineStyle = {
   stroke: '#a78bfa',
   strokeDasharray: '8, 4',
   animation: 'flowAnimation 1.5s infinite ease-in-out',
-  filter: 'drop-shadow(0 0 4px rgba(167, 139, 250, 0.7))',
+  filter: 'drop-shadow(0 0 3px rgba(167, 139, 250, 0.5))'
 };
 
 const edgeTypesOptions = [
   { name: 'Smooth Arrow', type: 'smoothstep', style: { strokeWidth: 2, stroke: '#a78bfa' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a78bfa' }, animated: true },
   { name: 'Straight Line', type: 'straight', style: { strokeWidth: 2, stroke: '#8b5cf6' }, markerEnd: { type: MarkerType.Arrow, color: '#8b5cf6' } },
   { name: 'Dashed Arrow', type: 'step', style: { strokeWidth: 2, stroke: '#9333ea', strokeDasharray: '5,5' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#9333ea' } },
-  { name: 'Curved Glow', type: 'bezier', style: { strokeWidth: 2, stroke: '#c084fc', filter: 'drop-shadow(0 0 3px rgba(192, 132, 252, 0.8))' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#c084fc' }, animated: true },
+  { name: 'Curved Glow', type: 'bezier', style: { strokeWidth: 2, stroke: '#c084fc', filter: 'drop-shadow(0 0 2px rgba(192, 132, 252, 0.6))' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#c084fc' }, animated: true },
   { name: 'Bold Arrow', type: 'smoothstep', style: { strokeWidth: 4, stroke: '#7c3aed' }, markerEnd: { type: MarkerType.ArrowClosed, width: 30, height: 30, color: '#7c3aed' } },
   { name: 'Double Arrow', type: 'bezier', style: { strokeWidth: 2, stroke: '#ec4899' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#ec4899' }, markerStart: { type: MarkerType.ArrowClosed, color: '#ec4899' }, animated: true },
-  { name: 'Thick Dashed', type: 'step', style: { strokeWidth: 3, stroke: '#10b981', strokeDasharray: '10,5' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
+  { name: 'Thick Dashed', type: 'step', style: { strokeWidth: 3, stroke: '#10b981', strokeDasharray: '10,5' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } }
 ];
 
 const NoteFlow = () => {
-  const { notes, fetchNotes, addNote, updateNote, deleteNote, connections, addConnection, deleteConnection, fetchConnections } = useNoteStore();
+  const {
+    notes,
+    fetchNotes,
+    addNote,
+    updateNote,
+    deleteNote,
+    connections,
+    addConnection,
+    deleteConnection,
+    fetchConnections
+  } = useNoteStore();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -60,52 +69,47 @@ const NoteFlow = () => {
   const [backgroundStyle, setBackgroundStyle] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEdgeDropdownOpen, setIsEdgeDropdownOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAnimation, setShowAnimation] = useState(true);
   const [selectedEdgeType, setSelectedEdgeType] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0); // New: Loading progress
   const [error, setError] = useState(null);
   const [socketStatus, setSocketStatus] = useState('disconnected');
 
-  // Update note in the store
   const handleUpdateNote = useCallback((id, { title, content, bgColor, fontSize, imageUrl, position }) => {
     updateNote(id, {
       title: title || 'Untitled',
       content: content || '',
       styling: { backgroundColor: bgColor || '#ffffff', fontSize: fontSize || 14 },
       imageUrl: imageUrl || '',
-      position,
+      position
     });
   }, [updateNote]);
 
-  // Delete note from the store
   const handleDeleteNote = useCallback((id) => deleteNote(id), [deleteNote]);
 
-  // Add a new note with randomized position
   const handleAddNote = useCallback(() => {
     const position = reactFlowInstance
       ? reactFlowInstance.project({
           x: reactFlowWrapper.current.offsetWidth / 2,
-          y: reactFlowWrapper.current.offsetHeight / 2,
+          y: reactFlowWrapper.current.offsetHeight / 2
         })
       : { x: 150, y: 150 };
 
     const randomizedPosition = {
       x: position.x + (Math.random() * 100 - 50),
-      y: position.y + (Math.random() * 100 - 50),
+      y: position.y + (Math.random() * 100 - 50)
     };
 
     addNote({
       content: "New Note",
       position: randomizedPosition,
-      styling: { backgroundColor: '#ffffff', fontSize: 14 },
+      styling: { backgroundColor: '#ffffff', fontSize: 14 }
     });
   }, [reactFlowInstance, addNote]);
 
-  // Handle node drag stop
   const onNodeDragStop = useCallback((event, node) => {
     const note = notes.find((n) => n._id === node.id);
     if (note) {
@@ -115,24 +119,22 @@ const NoteFlow = () => {
         bgColor: note.styling?.backgroundColor,
         fontSize: note.styling?.fontSize,
         imageUrl: note.imageUrl,
-        position: node.position,
+        position: node.position
       });
     }
   }, [notes, handleUpdateNote]);
 
-  // Connect nodes with debounced action
   const debouncedConnect = useCallback(debounce((params) => addConnection(params), 300), [addConnection]);
   const onConnect = useCallback((params) => debouncedConnect(params), [debouncedConnect]);
 
-  // Delete edge with fade-out animation
   const onEdgeClick = useCallback((event, edge) => {
-    if (window.confirm('Are you sure you want to delete this connection?')) {
-      setEdges((eds) => eds.map((e) => (e.id === edge.id ? { ...e, style: { ...e.style, opacity: 0, transition: 'opacity 0.3s' } } : e)));
+    const confirmed = window.confirm('Delete this connection?');
+    if (confirmed) {
+      setEdges((eds) => eds.map((e) => e.id === edge.id ? { ...e, style: { ...e.style, opacity: 0.5, strokeDasharray: '5,5' } } : e));
       setTimeout(() => deleteConnection(edge.id), 300);
     }
   }, [deleteConnection, setEdges]);
 
-  // Save all notes with progress feedback
   const handleSaveAll = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -142,10 +144,10 @@ const NoteFlow = () => {
           content: note.content,
           styling: note.styling,
           imageUrl: note.imageUrl,
-          position: note.position,
+          position: note.position
         })
       ));
-      console.log('All notes saved successfully'); // Replace with toast notification if available
+      console.log('All notes saved successfully');
     } catch (error) {
       setError('Error saving notes: ' + error.message);
     } finally {
@@ -153,13 +155,11 @@ const NoteFlow = () => {
     }
   }, [notes, updateNote]);
 
-  // Reconnect to socket
   const handleReconnect = useCallback(() => {
     setError(null);
     reconnectSocket();
   }, []);
 
-  // Initialize socket connection
   useEffect(() => {
     const socketInstance = initSocket();
     setSocket(socketInstance);
@@ -177,105 +177,151 @@ const NoteFlow = () => {
     };
   }, []);
 
-  // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
-    const handlers = {
-      'note-added': (newNote) => setNodes((nds) => [...nds, createNode(newNote)]),
-      'note-updated': (updatedNote) => setNodes((nds) => nds.map((n) => (n.id === updatedNote._id ? { ...n, data: { ...n.data, ...updatedNote }, position: updatedNote.position } : n))),
-      'note-deleted': (id) => setNodes((nds) => nds.filter((n) => n.id !== id)),
-      'connection-added': (conn) => setEdges((eds) => [...eds, { id: conn._id, ...conn, ...edgeTypesOptions[selectedEdgeType], data: { label: conn.label || '' } }]),
-      'connection-deleted': (id) => setEdges((eds) => eds.filter((e) => e.id !== id)),
+    const handleNoteAdded = (newNote) => {
+      setNodes((nds) => [...nds, {
+        id: newNote._id,
+        type: 'noteNode',
+        position: newNote.position || { x: 150, y: 150 },
+        data: {
+          title: newNote.title || 'Untitled',
+          content: newNote.content || '',
+          bgColor: newNote.styling?.backgroundColor || '#ffffff',
+          fontSize: newNote.styling?.fontSize || 14,
+          imageUrl: newNote.imageUrl || '',
+          onSave: (updatedData) => handleUpdateNote(newNote._id, updatedData),
+          onDelete: () => handleDeleteNote(newNote._id),
+          isDarkMode,
+          showAnimation
+        }
+      }]);
     };
 
-    Object.entries(handlers).forEach(([event, handler]) => socket.on(event, handler));
-    return () => Object.keys(handlers).forEach((event) => socket.off(event));
-  }, [socket, setNodes, setEdges, selectedEdgeType, isDarkMode, showAnimation]);
+    const handleNoteUpdated = (updatedNote) => {
+      setNodes((nds) => nds.map((node) =>
+        node.id === updatedNote._id ? { ...node, data: { ...node.data, ...updatedNote }, position: updatedNote.position } : node
+      ));
+    };
 
-  // Create a new node object
-  const createNode = (note) => ({
-    id: note._id,
-    type: 'noteNode',
-    position: note.position || { x: 150, y: 150 },
-    data: {
-      title: note.title || 'Untitled',
-      content: note.content || '',
-      bgColor: note.styling?.backgroundColor || '#ffffff',
-      fontSize: note.styling?.fontSize || 14,
-      imageUrl: note.imageUrl || '',
-      onSave: (updatedData) => handleUpdateNote(note._id, updatedData),
-      onDelete: () => handleDeleteNote(note._id),
-      isDarkMode,
-      showAnimation,
-    },
-  });
+    const handleNoteDeleted = (deletedNoteId) => {
+      setNodes((nds) => nds.filter((n) => n.id !== deletedNoteId));
+    };
 
-  // Load initial data with progress simulation
+    const handleConnectionAdded = (newConnection) => {
+      setEdges((eds) => [...eds, {
+        id: newConnection._id,
+        source: newConnection.source,
+        target: newConnection.target,
+        sourceHandle: newConnection.sourceHandle,
+        targetHandle: newConnection.targetHandle,
+        ...edgeTypesOptions[selectedEdgeType],
+        data: { label: newConnection.label || '' }
+      }]);
+    };
+
+    const handleConnectionDeleted = (connectionId) => {
+      setEdges((eds) => eds.filter((e) => e.id !== connectionId));
+    };
+
+    socket.on('note-added', handleNoteAdded);
+    socket.on('note-updated', handleNoteUpdated);
+    socket.on('note-deleted', handleNoteDeleted);
+    socket.on('connection-added', handleConnectionAdded);
+    socket.on('connection-deleted', handleConnectionDeleted);
+
+    return () => {
+      socket.off('note-added', handleNoteAdded);
+      socket.off('note-updated', handleNoteUpdated);
+      socket.off('note-deleted', handleNoteDeleted);
+      socket.off('connection-added', handleConnectionAdded);
+      socket.off('connection-deleted', handleConnectionDeleted);
+    };
+  }, [socket, setNodes, setEdges, isDarkMode, showAnimation, selectedEdgeType, handleUpdateNote, handleDeleteNote]);
+
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
       setError(null);
-      const interval = setInterval(() => setLoadProgress((prev) => Math.min(prev + 10, 90)), 200);
       try {
         await Promise.all([fetchNotes(), fetchConnections()]);
-        setLoadProgress(100);
       } catch (err) {
         setError('Failed to load initial data: ' + err.message);
       } finally {
-        clearInterval(interval);
-        setTimeout(() => setIsLoading(false), 300);
+        setIsLoading(false);
       }
     };
     loadInitialData();
   }, [fetchNotes, fetchConnections]);
 
-  // Sync nodes with store
   useEffect(() => {
     if (!notes || isLoading) return;
-    setNodes(notes.map(createNode));
-  }, [notes, setNodes, isDarkMode, showAnimation, isLoading]);
 
-  // Sync edges with store
+    setNodes(notes.map((note) => ({
+      id: note._id,
+      type: 'noteNode',
+      position: note.position || { x: 150, y: 150 },
+      data: {
+        title: note.title || 'Untitled',
+        content: note.content || '',
+        bgColor: note.styling?.backgroundColor || '#ffffff',
+        fontSize: note.styling?.fontSize || 14,
+        imageUrl: note.imageUrl || '',
+        onSave: (updatedData) => handleUpdateNote(note._id, updatedData),
+        onDelete: () => handleDeleteNote(note._id),
+        isDarkMode,
+        showAnimation
+      }
+    })));
+  }, [notes, setNodes, isDarkMode, showAnimation, isLoading, handleUpdateNote, handleDeleteNote]);
+
   useEffect(() => {
     if (!connections || isLoading) return;
-    setEdges(connections.map((conn) => ({
-      id: conn._id,
-      source: conn.source,
-      target: conn.target,
-      sourceHandle: conn.sourceHandle,
-      targetHandle: conn.targetHandle,
+
+    setEdges(connections.map((connection) => ({
+      id: connection._id,
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
       ...edgeTypesOptions[selectedEdgeType],
-      data: { label: conn.label || '' },
+      data: { label: connection.label || '' }
     })));
   }, [connections, setEdges, selectedEdgeType, isLoading]);
 
-  // Toggle UI states
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      localStorage.setItem('darkMode', !prev);
-      return !prev;
-    });
-  };
+  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
   const toggleAnimation = () => setShowAnimation((prev) => !prev);
+  const toggleDropdown = () => setIsDropdownOpen((prev) => !prev);
+  const toggleEdgeDropdown = () => setIsEdgeDropdownOpen((prev) => !prev);
+
   const selectBackground = (index) => {
     setBackgroundStyle(index);
     setIsDropdownOpen(false);
   };
+
   const selectEdgeType = (index) => {
     setSelectedEdgeType(index);
-    setEdges((eds) => eds.map((edge) => ({ ...edge, ...edgeTypesOptions[index] })));
     setIsEdgeDropdownOpen(false);
+    setEdges((eds) => eds.map((edge) => ({ ...edge, ...edgeTypesOptions[index] })));
   };
-  const handleZoom = (direction) => {
+
+  const handleZoomIn = () => {
     if (reactFlowInstance) {
-      const newZoom = direction === 'in' ? Math.min(zoomLevel + 0.2, 2) : Math.max(zoomLevel - 0.2, 0.5);
+      const newZoom = Math.min(zoomLevel + 0.2, 2);
       setZoomLevel(newZoom);
       reactFlowInstance.zoomTo(newZoom);
     }
   };
 
-  // Keyboard shortcut for saving
+  const handleZoomOut = () => {
+    if (reactFlowInstance) {
+      const newZoom = Math.max(zoomLevel - 0.2, 0.5);
+      setZoomLevel(newZoom);
+      reactFlowInstance.zoomTo(newZoom);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key === 's') {
@@ -287,7 +333,6 @@ const NoteFlow = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSaveAll]);
 
-  // Background design options
   const backgroundDesigns = [
     { name: 'Cross Fade (Light)', variant: 'cross', color: '#d8b4fe', gap: 24, size: 1, className: 'bg-opacity-10 animate-pulse-slow', overlay: 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-100/20 via-transparent to-transparent' },
     { name: 'Flowing Dots (Light)', variant: 'dots', color: '#a78bfa', gap: 16, size: 2, className: 'bg-opacity-20 animate-spin-slow', overlay: 'bg-[linear-gradient(45deg,_#f3e8ff_25%,_#ede9fe_50%,_#f3e8ff_75%)] bg-[length:200%_200%] animate-background-flow' },
@@ -304,20 +349,16 @@ const NoteFlow = () => {
     { name: 'Zen Garden', variant: 'lines', color: '#a3e635', gap: 30, size: 1, className: 'bg-opacity-20 animate-fade-in-out', overlay: 'bg-[linear-gradient(45deg,_#ecfccb_0%,_#d9f99d_25%,_#bef264_50%,_#a3e635_75%,_#84cc16_100%)] bg-[length:200%_200%] animate-background-flow' }
   ];
 
-
   const themeClass = isDarkMode
-    ? 'bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-900'
+    ? 'bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900'
     : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50';
 
   if (isLoading) {
     return (
-      <div className={`w-full h-screen flex items-center justify-center ${themeClass}`}>
-        <div className="text-center p-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg animate-fade-in">
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="animate-spin rounded-full h-full w-full border-t-4 border-b-4 border-purple-600"></div>
-            <span className="absolute inset-0 flex items-center justify-center text-lg font-medium text-gray-700 dark:text-gray-200">{loadProgress}%</span>
-          </div>
-          <p className="mt-4 text-lg font-medium text-gray-700 dark:text-gray-200">Loading NoteFlow...</p>
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading notes...</p>
         </div>
       </div>
     );
@@ -325,15 +366,16 @@ const NoteFlow = () => {
 
   if (error) {
     return (
-      <div className={`w-full h-screen flex items-center justify-center ${themeClass}`}>
-        <div className="text-center p-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg animate-fade-in">
-          <AlertTriangle size={48} className="text-red-500 mx-auto animate-bounce" />
-          <p className="mt-4 text-lg font-medium text-red-500">{error}</p>
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle size={48} className="text-red-500 mx-auto" />
+          <p className="mt-4 text-lg text-red-500">{error}</p>
           <button
             onClick={handleReconnect}
-            className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-300 hover:scale-105 btn-glow"
+            className="mt-4 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 mx-auto"
           >
-            <RefreshCw size={18} /> Reconnect
+            <RefreshCw size={16} />
+            Reconnect
           </button>
         </div>
       </div>
@@ -341,153 +383,220 @@ const NoteFlow = () => {
   }
 
   return (
-    <div ref={reactFlowWrapper} className={`w-full h-screen ${themeClass} overflow-hidden relative transition-all duration-500`}>
-      <style jsx>{`
+    <div ref={reactFlowWrapper} className={`w-full h-screen ${themeClass} overflow-hidden relative transition-colors duration-300`}>
+      <style jsx="true">{`
         @keyframes flowAnimation { 0% { stroke-dashoffset: 12; } 100% { stroke-dashoffset: 0; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulseSlow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-        @keyframes twinkle { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+        @keyframes backgroundFlow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+        @keyframes rotateSlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulseSlow { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+        @keyframes fadeInOut { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
         @keyframes gradientShift { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
-        .btn-glow { box-shadow: 0 0 15px rgba(167, 139, 250, 0.5); transition: box-shadow 0.3s; }
-        .btn-glow:hover { box-shadow: 0 0 25px rgba(167, 139, 250, 0.8); }
-        .dropdown-menu, .edge-dropdown { 
-          background: ${isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)'}; 
-          border-radius: 1rem; 
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); 
-          backdrop-filter: blur(12px); 
-          max-height: 320px; 
-          overflow-y: auto; 
-          scrollbar-width: thin; 
-          scrollbar-color: #a78bfa transparent; 
-        }
-        .dropdown-menu::-webkit-scrollbar, .edge-dropdown::-webkit-scrollbar { width: 8px; }
-        .dropdown-menu::-webkit-scrollbar-thumb, .edge-dropdown::-webkit-scrollbar-thumb { background: #a78bfa; border-radius: 4px; }
-        .dropdown-item, .edge-item { transition: all 0.2s; }
-        .dropdown-item:hover, .edge-item:hover { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; transform: scale(1.02); }
-        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes spinSave { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .react-flow__panel { transition: all 0.3s ease-in-out; }
+        .react-flow__controls { background: rgba(255, 255, 255, 0.95); border-radius: 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 0.5rem; gap: 0.5rem; }
+        .react-flow__controls button { background: linear-gradient(135deg, #a78bfa, #7c3aed); border: none; padding: 0.5rem; border-radius: 0.75rem; transition: transform 0.2s; }
+        .react-flow__controls button:hover { transform: scale(1.1); }
+        .dropdown-menu, .edge-dropdown { background: ${isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)'}; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); overflow: hidden; backdrop-filter: blur(10px); max-height: 300px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #a78bfa transparent; }
+        .dropdown-menu::-webkit-scrollbar, .edge-dropdown::-webkit-scrollbar { width: 6px; }
+        .dropdown-menu::-webkit-scrollbar-thumb, .edge-dropdown::-webkit-scrollbar-thumb { background-color: #a78bfa; border-radius: 6px; }
+        .dropdown-item, .edge-item { transition: all 0.2s ease-in-out; color: ${isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(31, 41, 55, 0.9)'}; }
+        .dropdown-item:hover, .edge-item:hover { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; }
         .animate-pulse-slow { animation: pulseSlow 3s infinite ease-in-out; }
+        .animate-spin-slow { animation: rotateSlow 15s infinite linear; }
         .animate-twinkle { animation: twinkle 4s infinite ease-in-out; }
-        .animate-gradient-shift { animation: gradientShift 10s infinite ease-in-out; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .connected { background: #10b981; animation: pulseSlow 2s infinite; }
-        .disconnected { background: #ef4444; animation: pulseSlow 2s infinite; }
+        .animate-fade-in-out { animation: fadeInOut 5s infinite ease-in-out; }
+        .animate-gradient-shift { animation: gradientShift 8s infinite ease-in-out; }
+        .animate-background-flow { animation: backgroundFlow 15s infinite linear; }
+        .animate-save { animation: spinSave 1s linear infinite; }
+        .btn-glow { box-shadow: 0 0 15px rgba(167, 139, 250, 0.5); }
+        .btn-glow:hover { box-shadow: 0 0 25px rgba(167, 139, 250, 0.7); }
+        .react-flow__minimap { background: ${isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)'}; border-radius: 0.75rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-dot.connected { background-color: #10b981; }
+        .status-dot.disconnected { background-color: #ef4444; }
       `}</style>
 
-      <div className={`absolute inset-0 ${backgroundDesigns[backgroundStyle].overlay} opacity-60 transition-opacity duration-700`}></div>
+      <div className={`absolute inset-0 ${backgroundDesigns[backgroundStyle].overlay} transition-opacity duration-300`}></div>
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeDragStop={onNodeDragStop}
-        onConnect={onConnect}
-        onEdgeClick={onEdgeClick}
-        nodeTypes={nodeTypes}
-        defaultEdgeOptions={edgeTypesOptions[selectedEdgeType]}
-        connectionLineStyle={connectionLineStyle}
-        onInit={setReactFlowInstance}
-        fitView
-        minZoom={0.5}
-        maxZoom={2}
-        className={`rounded-2xl shadow-2xl border ${isDarkMode ? 'border-gray-800' : 'border-gray-100'} backdrop-blur-md`}
-      >
-        <Background
-          variant={backgroundDesigns[backgroundStyle].variant}
-          color={backgroundDesigns[backgroundStyle].color}
-          gap={backgroundDesigns[backgroundStyle].gap}
-          size={backgroundDesigns[backgroundStyle].size}
-          className={backgroundDesigns[backgroundStyle].className}
-        />
-        <Controls className="m-6 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-lg p-2" />
-        <MiniMap nodeColor={() => (isDarkMode ? '#c084fc' : '#7c3aed')} className="m-6 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-lg" />
+      <div className="w-full h-full p-6">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeDragStop={onNodeDragStop}
+          onConnect={onConnect}
+          onEdgeClick={onEdgeClick}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={edgeTypesOptions[selectedEdgeType]}
+          connectionLineStyle={connectionLineStyle}
+          onInit={setReactFlowInstance}
+          fitView
+          minZoom={0.5}
+          maxZoom={2}
+          className={`rounded-lg shadow-2xl overflow-hidden border ${isDarkMode ? 'border-white/10' : 'border-white/20'} backdrop-blur-xl ${isDarkMode ? 'bg-black/5' : 'bg-white/5'} transition-all duration-300`}
+        >
+          <Background
+            variant={backgroundDesigns[backgroundStyle].variant}
+            color={backgroundDesigns[backgroundStyle].color}
+            gap={backgroundDesigns[backgroundStyle].gap}
+            size={backgroundDesigns[backgroundStyle].size}
+            className={`${backgroundDesigns[backgroundStyle].className} transition-all duration-300`}
+          />
+          <Controls className="m-8" />
+          <MiniMap nodeColor={(node) => (isDarkMode ? '#a78bfa' : '#7c3aed')} nodeStrokeWidth={3} className="m-8" />
 
-        <Panel position="top-left" className="m-6 flex items-center gap-3 bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full shadow-lg animate-fade-in">
-          <BookOpen size={22} className={isDarkMode ? 'text-purple-400' : 'text-purple-600'} />
-          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>NoteFlow</span>
-          <span className={`status-dot ${socketStatus === 'connected' ? 'connected' : 'disconnected'}`}></span>
-        </Panel>
+          <Panel position="top-left" className="m-8 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={24} className="text-purple-500 animate-pulse" />
+              <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">NoteFlow</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+              <span className={`status-dot ${socketStatus === 'connected' ? 'connected' : 'disconnected'}`}></span>
+              <span>Socket: {socketStatus}</span>
+            </div>
+          </Panel>
 
-        <Panel position="top-right" className="m-6 flex flex-wrap gap-3">
-          {[
-            { onClick: handleAddNote, icon: PlusIcon, text: 'Add Note', gradient: 'from-purple-600 to-indigo-600' },
-            { onClick: toggleDarkMode, icon: isDarkMode ? Sun : Moon, text: isDarkMode ? 'Light Mode' : 'Dark Mode', gradient: 'from-indigo-600 to-blue-600' },
-            { onClick: toggleAnimation, icon: Sparkles, text: showAnimation ? 'Reduce Effects' : 'Enhance Effects', gradient: 'from-fuchsia-600 to-pink-600' },
-            { onClick: () => handleZoom('in'), icon: ZoomIn, text: 'Zoom In', gradient: 'from-teal-600 to-cyan-600' },
-            { onClick: () => handleZoom('out'), icon: ZoomOut, text: 'Zoom Out', gradient: 'from-teal-600 to-cyan-600' },
-            { onClick: handleSaveAll, icon: Save, text: isSaving ? 'Saving...' : 'Save All', gradient: 'from-green-600 to-emerald-600', disabled: isSaving },
-          ].map(({ onClick, icon: Icon, text, gradient, disabled }, idx) => (
+          <Panel position="top-right" className="m-8 flex flex-wrap gap-3">
             <button
-              key={idx}
-              onClick={onClick}
-              disabled={disabled}
-              className={`relative bg-gradient-to-r ${gradient} hover:${gradient.replace('from-', 'hover:from-').replace('to-', 'hover:to-')} text-white py-2 px-4 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2 group overflow-hidden btn-glow ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:scale-105'}`}
+              onClick={handleAddNote}
+              className="relative bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+              aria-label="Add a new note"
+              title="Add a new note"
             >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <Icon size={18} className={`relative z-10 ${isSaving && text === 'Saving...' ? 'animate-spin' : ''}`} />
-              <span className="relative z-10 text-sm">{text}</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              <PlusIcon size={16} className="relative z-10" />
+              <span className="relative z-10 text-sm">Add</span>
             </button>
-          ))}
 
-          <div className="relative">
             <button
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
-              className="relative bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2 px-4 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2 group overflow-hidden btn-glow hover:scale-105"
+              onClick={toggleDarkMode}
+              className="relative bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+              aria-label="Toggle dark mode"
+              title="Toggle dark mode"
             >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <Settings size={18} className="relative z-10" />
-              <span className="relative z-10 text-sm">Background</span>
-              <ChevronDown size={18} className={`relative z-10 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              {isDarkMode ? <Sun size={16} className="relative z-10" /> : <Moon size={16} className="relative z-10" />}
+              <span className="relative z-10 text-sm">{isDarkMode ? 'Light' : 'Dark'}</span>
             </button>
-            {isDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 dropdown-menu z-50 animate-fade-in">
-                {backgroundDesigns.map((bg, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => selectBackground(idx)}
-                    className={`dropdown-item w-full text-left px-4 py-2 text-sm ${backgroundStyle === idx ? 'bg-purple-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} transition-all duration-200`}
-                  >
-                    {bg.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div className="relative">
             <button
-              onClick={() => setIsEdgeDropdownOpen((prev) => !prev)}
-              className="relative bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white py-2 px-4 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2 group overflow-hidden btn-glow hover:scale-105"
+              onClick={toggleAnimation}
+              className="relative bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+              aria-label="Toggle animations"
+              title="Toggle animations"
             >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <ArrowRightCircle size={18} className="relative z-10" />
-              <span className="relative z-10 text-sm">Edge Style</span>
-              <ChevronDown size={18} className={`relative z-10 transition-transform duration-300 ${isEdgeDropdownOpen ? 'rotate-180' : ''}`} />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              <Sparkles size={16} className={`relative z-10 ${showAnimation ? 'animate-pulse' : ''}`} />
+              <span className="relative z-10 text-sm">{showAnimation ? 'Reduce' : 'Enhance'}</span>
             </button>
-            {isEdgeDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 edge-dropdown z-50 animate-fade-in">
-                {edgeTypesOptions.map((edge, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => selectEdgeType(idx)}
-                    className={`edge-item w-full text-left px-4 py-2 text-sm ${selectedEdgeType === idx ? 'bg-purple-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} transition-all duration-200`}
-                  >
-                    {edge.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </Panel>
-      </ReactFlow>
+
+            <button
+              onClick={handleZoomIn}
+              className="relative bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              <ZoomIn size={16} className="relative z-10" />
+              <span className="relative z-10 text-sm">Zoom In</span>
+            </button>
+
+            <button
+              onClick={handleZoomOut}
+              className="relative bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              <ZoomOut size={16} className="relative z-10" />
+              <span className="relative z-10 text-sm">Zoom Out</span>
+            </button>
+
+            <button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className={`relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}`}
+              aria-label="Save all notes"
+              title="Save all notes"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+              <Save size={16} className={`relative z-10 ${isSaving ? 'animate-save' : ''}`} />
+              <span className="relative z-10 text-sm">{isSaving ? 'Saving' : 'Save'}</span>
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={toggleDropdown}
+                className="relative bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+                aria-label="Select background"
+                title="Select background"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+                <Settings size={16} className={`relative z-10 ${isDropdownOpen ? 'rotate-90' : ''} transition-transform duration-300`} />
+                <span className="relative z-10 text-sm">BG</span>
+                <ChevronDown size={16} className={`relative z-10 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-56 dropdown-menu z-50">
+                  <div className="py-2 px-3 border-b border-purple-200/20 mb-1">
+                    <p className={`text-xs font-semibold ${isDarkMode ? 'text-white/70' : 'text-gray-500'}`}>SELECT BACKGROUND</p>
+                  </div>
+                  {backgroundDesigns.map((bg, index) => (
+                    <button
+                      key={index}
+                      onClick={() => selectBackground(index)}
+                      className={`dropdown-item w-full text-left px-4 py-2 text-xs font-medium ${backgroundStyle === index ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : ''}`}
+                    >
+                      {bg.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={toggleEdgeDropdown}
+                className="relative bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-1 group overflow-hidden btn-glow"
+                aria-label="Select arrow style"
+                title="Select arrow style"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-300"></div>
+                <ArrowRightCircle size={16} className={`relative z-10 ${isEdgeDropdownOpen ? 'rotate-90' : ''} transition-transform duration-300`} />
+                <span className="relative z-10 text-sm">Arrow</span>
+                <ChevronDown size={16} className={`relative z-10 transition-transform duration-300 ${isEdgeDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isEdgeDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-56 edge-dropdown z-50">
+                  <div className="py-2 px-3 border-b border-purple-200/20 mb-1">
+                    <p className={`text-xs font-semibold ${isDarkMode ? 'text-white/70' : 'text-gray-500'}`}>SELECT ARROW STYLE</p>
+                  </div>
+                  {edgeTypesOptions.map((edgeType, index) => (
+                    <button
+                      key={index}
+                      onClick={() => selectEdgeType(index)}
+                      className={`edge-item w-full text-left px-4 py-2 text-xs font-medium ${selectedEdgeType === index ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : ''}`}
+                    >
+                      {edgeType.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Panel>
+        </ReactFlow>
+      </div>
 
       <button
+        className="fixed bottom-12 right-12 w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 group overflow-hidden border border-white/30 btn-glow"
         onClick={handleAddNote}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 group overflow-hidden btn-glow border border-white/20 animate-pulse-slow"
         aria-label="Add new note"
+        title="Add new note"
       >
         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform rotate-45 scale-150 group-hover:scale-100"></div>
-        <PlusIcon size={28} className="relative z-10" />
+        <PlusIcon size={24} className="relative z-10 animate-pulse-slow" />
       </button>
     </div>
   );
