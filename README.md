@@ -12,6 +12,9 @@ AI-NoteBook-Board-Frontend-GitHub: [https://github.com/satyamjaysawal/AI-Noteboo
 
 
 AI-NoteBook-Board-Backend-GitHub: [https://github.com/satyamjaysawal/AI-Noteboook-Board-Backend.git](https://github.com/satyamjaysawal/AI-Noteboook-Board-Backend.git)
+
+## For Enhance 
+[https://app.napkin.ai](https://app.napkin.ai/)
 ****
 
 ![image](https://github.com/user-attachments/assets/fb11d446-1d15-4e09-96d0-29caaba98047)
@@ -25,8 +28,7 @@ AI-NoteBook-Board-Backend-GitHub: [https://github.com/satyamjaysawal/AI-Notebooo
 
 ![image](https://github.com/user-attachments/assets/a9975da7-5dcd-45c2-9c66-307ec6118bc2)
 
-## For Enhance 
-[https://app.napkin.ai](https://app.napkin.ai/)
+
 # AI-NoteBook-Board Application
 
 **NoteFlow** is an interactive, real-time note-taking and mind-mapping application built with React, ReactFlow, Socket.IO, and a Node.js backend powered by MongoDB and Google Generative AI. Users can create, edit, connect, and style notes on a dynamic canvas, with features like real-time collaboration, AI-powered text processing, and customizable UI elements.
