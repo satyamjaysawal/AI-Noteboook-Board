@@ -14,13 +14,22 @@ const Connection = require('./models/Connection');
 const app = express();
 const server = http.createServer(app);
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 const DATABASE_URL = process.env.DATABASE_URL;
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }));
 
@@ -28,7 +37,7 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_URL,
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
   }
 });
@@ -86,6 +95,25 @@ const formatResponse = async (task, prompt) => {
   return { response: cleanedResponse };
 };
 
+let dbReady = false;
+
+const initDatabase = async () => {
+  if (dbReady) return;
+  await connectDB();
+  await sequelize.sync();
+  dbReady = true;
+  console.log('✅ Database tables synced');
+};
+
+app.use(async (_req, _res, next) => {
+  try {
+    await initDatabase();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get('/', (_, res) => {
   res.json({ message: '🚀 Welcome to NoteFlow API! Your server is up and running.' });
 });
@@ -125,12 +153,9 @@ app.use((err, _req, res, _next) => {
 
 const startServer = async () => {
   try {
-    await connectDB();
-    await sequelize.sync();
-    console.log('✅ Database tables synced');
-
+    await initDatabase();
     server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}, allowing requests from ${CLIENT_URL}`);
+      console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📦 Database: PostgreSQL (${DATABASE_URL?.split('@')[1] || 'configured'})`);
     });
   } catch (err) {
@@ -139,4 +164,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  startServer();
+}
