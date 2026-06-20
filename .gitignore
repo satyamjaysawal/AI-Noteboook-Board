@@ -57,7 +57,9 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
-.dockerignore
+
+# Local dev terminals
+terminals/
 
 # Jest and Testing
 coverage/

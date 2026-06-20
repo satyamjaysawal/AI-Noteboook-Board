@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: noteflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-noteflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-noteflow123}
+      POSTGRES_DB: ${POSTGRES_DB:-noteflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noteflow} -d ${POSTGRES_DB:-noteflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: noteflow-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-noteflow}:${POSTGRES_PASSWORD:-noteflow123}@postgres:5432/${POSTGRES_DB:-noteflow}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:5000}
+    container_name: noteflow-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  postgres_data:
