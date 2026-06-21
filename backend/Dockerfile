@@ -1,12 +1,15 @@
-FROM node:20-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --omit=dev
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 EXPOSE 5000
 
-CMD ["node", "server.js"]
+CMD ["uvicorn", "app.main:socket_app", "--host", "0.0.0.0", "--port", "5000"]
