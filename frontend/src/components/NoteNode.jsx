@@ -43,6 +43,28 @@ const NoteNode = memo(({ id, data }) => {
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
   const containerRef = useRef(null);
+  const startPos = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = useCallback((e) => {
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0]?.clientX);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0]?.clientY);
+    startPos.current = { x: clientX, y: clientY };
+  }, []);
+
+  const handlePointerUp = useCallback((e) => {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) {
+      return;
+    }
+    const clientX = e.clientX !== undefined ? e.clientX : (e.changedTouches && e.changedTouches[0]?.clientX);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.changedTouches && e.changedTouches[0]?.clientY);
+    if (clientX === undefined || clientY === undefined) return;
+    const dx = Math.abs(clientX - startPos.current.x);
+    const dy = Math.abs(clientY - startPos.current.y);
+    if (dx < 6 && dy < 6) {
+      handleEdit();
+    }
+  }, [handleEdit]);
+
 
   const colorOptions = [
     { value: '#ffffff', label: 'White' },
@@ -170,7 +192,11 @@ const NoteNode = memo(({ id, data }) => {
       const response = await processAi({ task: aiTask, prompt: content });
       setIsLoadingAI(false);
       if (response.success) {
-        setAiResponse(response.result || response);
+        const result = response.result || response;
+        setAiResponse(result);
+        if (result.response && (title === 'Untitled' || title === 'New Note' || !title.trim())) {
+          setTitle(extractTitleFromText(result.response));
+        }
       } else {
         setError(response.error || 'AI Task Failed');
       }
@@ -178,7 +204,7 @@ const NoteNode = memo(({ id, data }) => {
       setIsLoadingAI(false);
       setError(err.response?.data?.detail || err.message || 'Failed to generate AI response');
     }
-  }, [content, aiTask]);
+  }, [content, aiTask, title]);
 
   const getBgStyleValue = useCallback((color) => {
     if (color.startsWith('linear-gradient')) return color;
@@ -268,6 +294,20 @@ const NoteNode = memo(({ id, data }) => {
           to { opacity: 1; transform: translateY(0); } 
         }
         .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .note-scroll-container::-webkit-scrollbar {
+          width: 5px;
+        }
+        .note-scroll-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .note-scroll-container::-webkit-scrollbar-thumb {
+          background: ${cardTheme.isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'};
+          border-radius: 10px;
+        }
+        .note-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: ${cardTheme.isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)'};
+        }
       `}</style>
 
       {/* Handles */}
@@ -298,17 +338,34 @@ const NoteNode = memo(({ id, data }) => {
       <div className="relative z-10 space-y-3.5">
         {isEditing ? (
           <div className="space-y-3 animate-fade-in nodrag">
-            <input
-              ref={titleRef}
-              value={title}
-              onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-              onKeyDown={(e) => { 
-                if (e.key === 'Enter' && e.ctrlKey) handleSave(); 
-                if (e.key === 'Escape') handleCancel(); 
-              }}
-              placeholder="Note Title"
-              className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 shadow-sm text-sm font-semibold transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30 nodrag`}
-            />
+            <div className="flex gap-2 w-full items-center">
+              <input
+                ref={titleRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value.slice(0, 100))}
+                onKeyDown={(e) => { 
+                  if (e.key === 'Enter' && e.ctrlKey) handleSave(); 
+                  if (e.key === 'Escape') handleCancel(); 
+                }}
+                placeholder="Note Title"
+                className={`flex-1 px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 shadow-sm text-sm font-semibold transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30 nodrag`}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (content.trim()) {
+                    setTitle(extractTitleFromText(content));
+                  } else {
+                    setError('Please write some content first to generate a title');
+                  }
+                }}
+                className={`px-3 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${cardTheme.buttonSecondary} nodrag`}
+                title="Auto-generate title from content"
+              >
+                <Brain size={13} className="text-indigo-500 dark:text-indigo-400" />
+                <span>Auto</span>
+              </button>
+            </div>
             
             <textarea
               ref={textareaRef}
@@ -419,7 +476,13 @@ const NoteNode = memo(({ id, data }) => {
             )}
           </div>
         ) : (
-          <div onClick={handleEdit} className="cursor-pointer space-y-2.5 animate-fade-in">
+          <div 
+            onMouseDown={handlePointerDown}
+            onMouseUp={handlePointerUp}
+            onTouchStart={handlePointerDown}
+            onTouchEnd={handlePointerUp}
+            className="cursor-pointer space-y-2.5 animate-fade-in"
+          >
             <div className="flex justify-between items-center gap-2">
               <h3 className={`font-extrabold text-[15px] ${textColorClass} tracking-tight truncate flex-1`}>{title}</h3>
               <button
@@ -434,8 +497,11 @@ const NoteNode = memo(({ id, data }) => {
             </div>
             
             <div
-              className={`whitespace-pre-wrap ${textColorClass} font-medium leading-relaxed break-words`}
-              style={{ fontSize: `${fontSize}px` }}
+              className={`whitespace-pre-wrap ${textColorClass} font-medium leading-relaxed break-words overflow-y-auto pr-1 nodrag nowheel note-scroll-container`}
+              style={{ 
+                fontSize: `${fontSize}px`,
+                maxHeight: isExpanded ? '450px' : '200px'
+              }}
             >
               {content || <span className={`italic text-[13px] ${cardTheme.secondaryText}`}>Click to write note...</span>}
             </div>
