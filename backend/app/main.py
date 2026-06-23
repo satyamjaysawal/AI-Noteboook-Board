@@ -85,3 +85,4 @@ async def server_error_handler(_request: Request, exc: Exception):
 
 
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
+app = socket_app
