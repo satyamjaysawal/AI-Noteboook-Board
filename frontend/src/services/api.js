@@ -42,3 +42,23 @@ export const createConnection = async (connectionData) => {
 export const deleteConnectionById = async (id) => {
   await api.delete(`/connections/${id}`);
 };
+
+export const fetchAllDrawings = async () => {
+  const response = await api.get('/drawings');
+  return response.data;
+};
+
+export const createDrawing = async (drawingData) => {
+  const response = await api.post('/drawings', drawingData);
+  return response.data;
+};
+
+export const clearAllDrawings = async () => {
+  const response = await api.delete('/drawings');
+  return response.data;
+};
+
+export const deleteDrawingById = async (id) => {
+  const response = await api.delete(`/drawings/${id}`);
+  return response.data;
+};

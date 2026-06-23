@@ -1,5 +1,18 @@
 from app.models.connection import Connection
+from app.models.drawing import Drawing
 from app.models.note import Note
+
+
+def serialize_drawing(drawing: Drawing) -> dict:
+    draw_id = str(drawing.id)
+    return {
+        "id": draw_id,
+        "_id": draw_id,
+        "path": drawing.path,
+        "color": drawing.color,
+        "width": drawing.width,
+        "createdAt": drawing.created_at.isoformat() if drawing.created_at else None,
+    }
 
 
 def serialize_note(note: Note) -> dict:

@@ -57,11 +57,13 @@
 .react-flow__handle {
   width: 10px !important;
   height: 10px !important;
-  background: #818cf8 !important; /* indigo-400 */
+  background: #818cf8 !important;
+  /* indigo-400 */
   border: 2px solid #ffffff !important;
   box-shadow: 0 0 8px rgba(129, 140, 248, 0.8);
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, opacity 0.2s !important;
-  opacity: 0; /* hidden by default, visible on hover */
+  opacity: 0;
+  /* hidden by default, visible on hover */
 }
 
 .react-flow__node:hover .react-flow__handle {
@@ -70,7 +72,8 @@
 
 .react-flow__handle:hover {
   transform: scale(1.4);
-  background: #4f46e5 !important; /* indigo-600 */
+  background: #4f46e5 !important;
+  /* indigo-600 */
 }
 
 .react-flow__handle-connecting {
@@ -79,6 +82,115 @@
 }
 
 @keyframes handlePulse {
-  from { box-shadow: 0 0 4px rgba(129, 140, 248, 0.5); }
-  to { box-shadow: 0 0 12px rgba(129, 140, 248, 1); }
+  from {
+    box-shadow: 0 0 4px rgba(129, 140, 248, 0.5);
+  }
+
+  to {
+    box-shadow: 0 0 12px rgba(129, 140, 248, 1);
+  }
+}
+
+/* ── Digital Board Mode ───────────────────────────────────── */
+@keyframes boardFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.digital-board-enter {
+  animation: boardFadeIn 0.4s ease forwards;
+}
+
+/* Smooth toolbar slide-in from left */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%) translateY(-50%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0) translateY(-50%);
+    opacity: 1;
+  }
+}
+
+/* Drawing layer SVG paths smooth rendering */
+.drawing-path {
+  shape-rendering: geometricPrecision;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Custom scrollbar for dark board overlays */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Prevent text selection while drawing */
+.drawing-active * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Dynamic hiding for underlying notes in digital whiteboard mode */
+.hide-notes .react-flow__node,
+.hide-notes .react-flow__edge,
+.hide-notes .react-flow__connection,
+.hide-notes .react-flow__connectionline {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Rainbow Stroke Animation for Magic Whiteboard Pen */
+@keyframes rainbow-stroke {
+  0% {
+    stroke: #ff0000;
+  }
+
+  17% {
+    stroke: #ff8800;
+  }
+
+  33% {
+    stroke: #ffff00;
+  }
+
+  50% {
+    stroke: #00ff00;
+  }
+
+  67% {
+    stroke: #0000ff;
+  }
+
+  83% {
+    stroke: #8800ff;
+  }
+
+  100% {
+    stroke: #ff0000;
+  }
+}
+
+.rainbow-path {
+  animation: rainbow-stroke 4s linear infinite !important;
 }

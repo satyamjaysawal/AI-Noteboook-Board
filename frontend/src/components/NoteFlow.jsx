@@ -10,8 +10,26 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import NoteNode from './NoteNode';
-import { useNoteStore } from '../store/noteStore';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  fetchNotes as fetchNotesThunk,
+  addNote as addNoteThunk,
+  updateNote as updateNoteThunk,
+  deleteNote as deleteNoteThunk,
+  fetchConnections as fetchConnectionsThunk,
+  addConnection as addConnectionThunk,
+  deleteConnection as deleteConnectionThunk,
+  addNoteLocally as addNoteLocallyAction,
+  updateNoteLocally as updateNoteLocallyAction,
+  deleteNoteLocally as deleteNoteLocallyAction,
+  addConnectionLocally as addConnectionLocallyAction,
+  deleteConnectionLocally as deleteConnectionLocallyAction,
+  deleteConnectionsByNoteIdLocally
+} from '../store/notesSlice';
 import { initSocket, isSocketConnected, reconnectSocket } from '../services/socket';
+import DrawingLayer from './DrawingLayer';
+import DrawingToolbar from './DrawingToolbar';
+import DigitalBoard from './DigitalBoard';
 import {
   PlusIcon,
   ChevronDown,
@@ -50,22 +68,23 @@ const edgeTypesOptions = [
 ];
 
 const NoteFlow = () => {
-  const {
-    notes,
-    fetchNotes,
-    addNote,
-    updateNote,
-    deleteNote,
-    connections,
-    addConnection,
-    deleteConnection,
-    fetchConnections,
-    addNoteLocally,
-    updateNoteLocally,
-    deleteNoteLocally,
-    addConnectionLocally,
-    deleteConnectionLocally
-  } = useNoteStore();
+  const dispatch = useDispatch();
+  const notes = useSelector((state) => state.notes.notes);
+  const connections = useSelector((state) => state.notes.connections);
+
+  const fetchNotes = useCallback((filters) => dispatch(fetchNotesThunk(filters)), [dispatch]);
+  const addNote = useCallback((noteData) => dispatch(addNoteThunk(noteData)), [dispatch]);
+  const updateNote = useCallback((id, noteData) => dispatch(updateNoteThunk({ id, noteData })), [dispatch]);
+  const deleteNote = useCallback((id) => dispatch(deleteNoteThunk(id)), [dispatch]);
+  const fetchConnections = useCallback(() => dispatch(fetchConnectionsThunk()), [dispatch]);
+  const addConnection = useCallback((connectionData) => dispatch(addConnectionThunk(connectionData)), [dispatch]);
+  const deleteConnection = useCallback((id) => dispatch(deleteConnectionThunk(id)), [dispatch]);
+
+  const addNoteLocally = useCallback((note) => dispatch(addNoteLocallyAction(note)), [dispatch]);
+  const updateNoteLocally = useCallback((note) => dispatch(updateNoteLocallyAction(note)), [dispatch]);
+  const deleteNoteLocally = useCallback((id) => dispatch(deleteNoteLocallyAction(id)), [dispatch]);
+  const addConnectionLocally = useCallback((conn) => dispatch(addConnectionLocallyAction(conn)), [dispatch]);
+  const deleteConnectionLocally = useCallback((id) => dispatch(deleteConnectionLocallyAction(id)), [dispatch]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -84,6 +103,51 @@ const NoteFlow = () => {
   const [error, setError] = useState(null);
   const [socketStatus, setSocketStatus] = useState('disconnected');
   const [showHelp, setShowHelp] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [drawingTool, setDrawingTool] = useState('pen');
+  const [drawingColor, setDrawingColor] = useState('#ffffff');
+  const [drawingWidth, setDrawingWidth] = useState(4);
+  const [boardBackground, setBoardBackground] = useState({ id: 'blackboard', bg: '#0f1117', grid: false });
+  const [zenMode, setZenMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showNotesOnBoard, setShowNotesOnBoard] = useState(false);
+  const drawingActionsRef = useRef({ undo: () => {}, clear: async () => {} });
+
+  const handleDrawingUndo = useCallback(() => drawingActionsRef.current.undo(), []);
+  const handleDrawingClear = useCallback(() => {
+    if (window.confirm('Clear all drawings from the board?')) drawingActionsRef.current.clear();
+  }, []);
+  const registerUndoClear = useCallback((actions) => { drawingActionsRef.current = actions; }, []);
+
+  // Sync fullscreen state from browser
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.error(`Error attempting to exit fullscreen: ${err.message}`);
+      });
+    }
+  }, []);
+
+  // Exit zen mode when leaving drawing mode, reset showNotesOnBoard to false when entering drawing mode
+  useEffect(() => {
+    if (!isDrawingMode) {
+      setZenMode(false);
+    } else {
+      setShowNotesOnBoard(false);
+    }
+  }, [isDrawingMode]);
 
   // Set dark mode class on document element
   useEffect(() => {
@@ -240,11 +304,7 @@ const NoteFlow = () => {
 
     const handleConnectionDeleted = (connectionData) => {
       if (typeof connectionData === 'object' && connectionData !== null && connectionData.noteId) {
-        useNoteStore.setState((state) => ({
-          connections: state.connections.filter(
-            (c) => c.source !== connectionData.noteId && c.target !== connectionData.noteId
-          )
-        }));
+        dispatch(deleteConnectionsByNoteIdLocally(connectionData.noteId));
       } else {
         deleteConnectionLocally(connectionData);
       }
@@ -498,10 +558,32 @@ const NoteFlow = () => {
         .status-dot.disconnected { color: #ef4444; background-color: #ef4444; }
       `}</style>
 
-      {/* Dynamic Background Shader */}
-      <div className={`absolute inset-0 ${backgroundDesigns[backgroundStyle].overlay} transition-opacity duration-700 pointer-events-none`}></div>
+      {/* Dynamic Background Shader (hidden when drawing mode active) */}
+      {!isDrawingMode && (
+        <div className={`absolute inset-0 ${backgroundDesigns[backgroundStyle].overlay} transition-opacity duration-700 pointer-events-none`}></div>
+      )}
 
-      <div className="w-full h-full p-4 md:p-6">
+      {/* Digital Board Background — offset left when toolbar is open */}
+      {isDrawingMode && (
+        <div
+          style={{
+            position: 'absolute', inset: 0,
+            paddingLeft: isDrawingMode ? '72px' : '0px',
+            transition: 'padding-left 0.35s cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none',
+          }}
+        >
+          <DigitalBoard boardBackground={boardBackground} />
+        </div>
+      )}
+
+      <div
+        className="w-full h-full p-4 md:p-6"
+        style={{
+          paddingLeft: isDrawingMode ? '100px' : undefined,
+          transition: 'padding-left 0.35s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -518,7 +600,14 @@ const NoteFlow = () => {
           fitView
           minZoom={0.2}
           maxZoom={2}
-          className={`rounded-[28px] overflow-hidden border ${isDarkMode ? 'border-slate-800 bg-slate-950/20' : 'border-slate-200 bg-slate-50/20'} backdrop-blur-[1px] shadow-2xl transition-all duration-700`}
+          panOnDrag={!isDrawingMode}
+          zoomOnScroll={!isDrawingMode}
+          zoomOnPinch={!isDrawingMode}
+          zoomOnDoubleClick={!isDrawingMode}
+          nodesDraggable={!isDrawingMode}
+          nodesConnectable={!isDrawingMode}
+          elementsSelectable={!isDrawingMode}
+          className={`rounded-[28px] overflow-hidden border ${isDarkMode ? 'border-slate-800 bg-slate-950/20' : 'border-slate-200 bg-slate-50/20'} backdrop-blur-[1px] shadow-2xl transition-all duration-700 ${isDrawingMode && !showNotesOnBoard ? 'hide-notes' : ''}`}
         >
           <Background
             variant={backgroundDesigns[backgroundStyle].variant}
@@ -527,10 +616,19 @@ const NoteFlow = () => {
             size={backgroundDesigns[backgroundStyle].size}
             className={`${backgroundDesigns[backgroundStyle].className} transition-all duration-700`}
           />
+
+          <DrawingLayer
+            isDrawingMode={isDrawingMode}
+            drawingTool={drawingTool}
+            drawingColor={drawingColor}
+            drawingWidth={drawingWidth}
+            registerUndoClear={registerUndoClear}
+            boardBackground={boardBackground}
+          />
           
           {/* Custom Floating Zoom Controls Panel */}
           <Panel position="bottom-left" className="!m-6">
-            <div className="glass-panel p-1 rounded-2xl flex items-center gap-1 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-300">
+            <div className={`glass-panel p-1 rounded-2xl flex items-center gap-1 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-500 ${zenMode ? 'opacity-0 pointer-events-none translate-y-4' : 'opacity-100 translate-y-0'}`}>
               <button
                 onClick={handleZoomOut}
                 className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
@@ -567,17 +665,19 @@ const NoteFlow = () => {
             </div>
           </Panel>
           
-          <MiniMap
-            nodeColor={(node) => (isDarkMode ? '#6366f1' : '#4f46e5')}
-            nodeStrokeColor={() => '#ffffff'}
-            nodeStrokeWidth={2}
-            className="!m-6 !right-0 !bottom-0 !hidden md:!block"
-            maskColor={isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)'}
-          />
+          <div className={`transition-all duration-500 ${zenMode ? 'opacity-0 pointer-events-none translate-y-4' : 'opacity-100 translate-y-0'}`}>
+            <MiniMap
+              nodeColor={(node) => (isDarkMode ? '#6366f1' : '#4f46e5')}
+              nodeStrokeColor={() => '#ffffff'}
+              nodeStrokeWidth={2}
+              className="!m-6 !right-0 !bottom-0 !hidden md:!block"
+              maskColor={isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)'}
+            />
+          </div>
 
           {/* Top Left Branding + Socket Panel */}
           <Panel position="top-left" className="!m-4 md:!m-6">
-            <div className="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3.5 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-300">
+            <div className={`glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3.5 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-500 ${zenMode ? 'opacity-0 pointer-events-none -translate-y-4' : 'opacity-100 translate-y-0'}`}>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
                   <Sparkles size={14} className="text-white" />
@@ -595,7 +695,7 @@ const NoteFlow = () => {
 
           {/* Top Right Actions Command Bar */}
           <Panel position="top-right" className="!m-4 md:!m-6">
-            <div className="glass-panel p-1.5 rounded-2xl flex flex-wrap items-center gap-1.5 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-300 max-w-[90vw] md:max-w-none justify-end">
+            <div className={`glass-panel p-1.5 rounded-2xl flex flex-wrap items-center gap-1.5 shadow-xl border border-white/20 dark:border-white/5 transition-all duration-500 max-w-[90vw] md:max-w-none justify-end ${zenMode ? 'opacity-0 pointer-events-none -translate-y-4' : 'opacity-100 translate-y-0'}`}>
               
               {/* Add Note Button */}
               <button
@@ -732,15 +832,38 @@ const NoteFlow = () => {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Add Note */}
-      <button
-        className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-105 hover:rotate-90 active:scale-95 transition-all duration-300 z-30 border border-white/20"
-        onClick={handleAddNote}
-        aria-label="Add new note"
-        title="Add new note"
-      >
-        <PlusIcon size={22} />
-      </button>
+      {/* Floating Action Button — hidden during drawing mode */}
+      {!isDrawingMode && (
+        <button
+          className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-105 hover:rotate-90 active:scale-95 transition-all duration-300 z-30 border border-white/20"
+          onClick={handleAddNote}
+          aria-label="Add new note"
+          title="Add new note"
+        >
+          <PlusIcon size={22} />
+        </button>
+      )}
+
+      <DrawingToolbar
+        isDrawingMode={isDrawingMode}
+        setIsDrawingMode={setIsDrawingMode}
+        drawingTool={drawingTool}
+        setDrawingTool={setDrawingTool}
+        drawingColor={drawingColor}
+        setDrawingColor={setDrawingColor}
+        drawingWidth={drawingWidth}
+        setDrawingWidth={setDrawingWidth}
+        onUndo={handleDrawingUndo}
+        onClear={handleDrawingClear}
+        boardBackground={boardBackground}
+        setBoardBackground={setBoardBackground}
+        zenMode={zenMode}
+        setZenMode={setZenMode}
+        isFullscreen={isFullscreen}
+        toggleFullscreen={toggleFullscreen}
+        showNotesOnBoard={showNotesOnBoard}
+        setShowNotesOnBoard={setShowNotesOnBoard}
+      />
     </div>
   );
 };
