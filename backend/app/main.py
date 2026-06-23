@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 from app.config import get_settings
 from app.database import Base, engine
 from app.models.drawing import Drawing  # Ensure Drawing model is imported for SQLAlchemy table creation
-from app.routers import connections_router, notes_router, drawings_router
+from app.routers import connections_router, notes_router, drawings_router, ai_router
 from app.services.ai_service import AIService
 from app.socket_events import register_socket_events
 
@@ -69,6 +69,7 @@ def health():
 app.include_router(notes_router)
 app.include_router(connections_router)
 app.include_router(drawings_router)
+app.include_router(ai_router)
 
 
 @app.exception_handler(404)
