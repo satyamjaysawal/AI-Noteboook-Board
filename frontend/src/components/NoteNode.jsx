@@ -4,6 +4,24 @@ import { Edit2, Trash2, Save, X, Palette, Brain, PlusCircle, Type, Image as Imag
 import debounce from 'lodash.debounce';
 import { processAi } from '../services/api';
 
+const extractTitleFromText = (text) => {
+  if (!text) return '';
+  const firstLine = text.trim().split('\n')[0];
+  let cleaned = firstLine.replace(/[\*#_`~:]/g, '').trim();
+  if (cleaned.length > 35) {
+    const words = cleaned.split(' ');
+    let shortTitle = '';
+    for (let word of words) {
+      if ((shortTitle + ' ' + word).length > 35) break;
+      shortTitle += (shortTitle ? ' ' : '') + word;
+    }
+    cleaned = shortTitle || cleaned.substring(0, 35);
+    cleaned = cleaned.trim();
+    cleaned += '...';
+  }
+  return cleaned || 'Untitled';
+};
+
 const NoteNode = memo(({ id, data }) => {
   const [title, setTitle] = useState(data.title || 'Untitled');
   const [content, setContent] = useState(data.content || '');
@@ -279,7 +297,7 @@ const NoteNode = memo(({ id, data }) => {
       {/* Card Content Area */}
       <div className="relative z-10 space-y-3.5">
         {isEditing ? (
-          <div className="space-y-3 animate-fade-in">
+          <div className="space-y-3 animate-fade-in nodrag">
             <input
               ref={titleRef}
               value={title}
@@ -289,7 +307,7 @@ const NoteNode = memo(({ id, data }) => {
                 if (e.key === 'Escape') handleCancel(); 
               }}
               placeholder="Note Title"
-              className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 shadow-sm text-sm font-semibold transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30`}
+              className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 shadow-sm text-sm font-semibold transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30 nodrag`}
             />
             
             <textarea
@@ -301,7 +319,7 @@ const NoteNode = memo(({ id, data }) => {
                 e.target.style.height = `${Math.min(e.target.scrollHeight, 350)}px`;
               }}
               placeholder="Write something..."
-              className={`w-full min-h-[100px] resize-none rounded-xl p-3 border focus:outline-none focus:ring-2 shadow-sm focus:border-transparent transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30`}
+              className={`w-full min-h-[100px] resize-none rounded-xl p-3 border focus:outline-none focus:ring-2 shadow-sm focus:border-transparent transition-all duration-200 ${cardTheme.inputBg} ${cardTheme.placeholder} focus:ring-indigo-500/30 nodrag nowheel`}
               style={{ fontSize: `${fontSize}px` }}
             />
 
@@ -376,11 +394,15 @@ const NoteNode = memo(({ id, data }) => {
                   )}
                 </div>
 
-                {/* Use suggestion button moved OUTSIDE of the AI Response card */}
                 {!aiResponse.error && aiTask !== 'word_suggestions' && aiResponse.response && (
                   <button
-                    onClick={() => setContent(aiResponse.response)}
-                    className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow font-semibold text-xs animate-fade-in"
+                    onClick={() => {
+                      setContent(aiResponse.response);
+                      if (title === 'Untitled' || title === 'New Note' || !title.trim()) {
+                        setTitle(extractTitleFromText(aiResponse.response));
+                      }
+                    }}
+                    className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow font-semibold text-xs animate-fade-in nodrag"
                   >
                     <PlusCircle size={13} />
                     <span>Use suggestion</span>
