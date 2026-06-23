@@ -368,27 +368,31 @@ const NoteNode = memo(({ id, data }) => {
 
             {/* AI Response Display */}
             {aiResponse && (
-              <div className={`p-3 backdrop-blur-md rounded-2xl border shadow-md max-h-40 overflow-y-auto animate-fade-in text-xs ${cardTheme.aiDockBg} ${cardTheme.text}`}>
-                {aiResponse.error ? (
-                  <p className="text-red-500 font-medium">{aiResponse.error}</p>
-                ) : aiTask === 'word_suggestions' ? (
-                  <div className="space-y-1">
-                    <p className="font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-1">AI Suggestions</p>
-                    <ul className={`list-disc pl-4 font-medium space-y-0.5 ${cardTheme.secondaryText}`}>
-                      {Array.isArray(aiResponse.suggestions) ? aiResponse.suggestions.map((s, i) => <li key={i}>{s}</li>) : 'No suggestions found'}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+              <div className="space-y-2 mt-2">
+                <div className={`p-3 backdrop-blur-md rounded-2xl border shadow-md animate-fade-in text-xs ${cardTheme.aiDockBg} ${cardTheme.text}`}>
+                  {aiResponse.error ? (
+                    <p className="text-red-500 font-medium">{aiResponse.error}</p>
+                  ) : aiTask === 'word_suggestions' ? (
+                    <div className="space-y-1">
+                      <p className="font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-1">AI Suggestions</p>
+                      <ul className={`list-disc pl-4 font-medium space-y-0.5 ${cardTheme.secondaryText}`}>
+                        {Array.isArray(aiResponse.suggestions) ? aiResponse.suggestions.map((s, i) => <li key={i}>{s}</li>) : 'No suggestions found'}
+                      </ul>
+                    </div>
+                  ) : (
                     <p className={`font-medium leading-relaxed ${cardTheme.text}`}>{aiResponse.response}</p>
-                    <button
-                      onClick={() => setContent(aiResponse.response)}
-                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-1 transition-all active:scale-95 shadow font-semibold"
-                    >
-                      <PlusCircle size={12} />
-                      <span>Use suggestion</span>
-                    </button>
-                  </div>
+                  )}
+                </div>
+
+                {/* Use suggestion button moved OUTSIDE of the AI Response card */}
+                {!aiResponse.error && aiTask !== 'word_suggestions' && aiResponse.response && (
+                  <button
+                    onClick={() => setContent(aiResponse.response)}
+                    className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow font-semibold text-xs animate-fade-in"
+                  >
+                    <PlusCircle size={13} />
+                    <span>Use suggestion</span>
+                  </button>
                 )}
               </div>
             )}
