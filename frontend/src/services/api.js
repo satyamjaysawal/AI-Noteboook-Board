@@ -62,3 +62,8 @@ export const deleteDrawingById = async (id) => {
   const response = await api.delete(`/drawings/${id}`);
   return response.data;
 };
+
+export const processAi = async (aiData) => {
+  const response = await api.post('/ai/process', aiData);
+  return response.data;
+};

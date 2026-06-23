@@ -2,9 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Edit2, Trash2, Save, X, Palette, Brain, PlusCircle, Type, Image as ImageIcon, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import debounce from 'lodash.debounce';
-import { initSocket } from '../services/socket';
-
-const socket = initSocket();
+import { processAi } from '../services/api';
 
 const NoteNode = memo(({ id, data }) => {
   const [title, setTitle] = useState(data.title || 'Untitled');
@@ -88,27 +86,10 @@ const NoteNode = memo(({ id, data }) => {
 
     updateState();
 
-    const handleAiResponse = (response) => {
-      setIsLoadingAI(false);
-      if (response.success) {
-        setAiResponse(response.result);
-      } else {
-        setError(response.error || 'AI Task Failed');
-      }
-    };
-
-    socket.on('ai-response', handleAiResponse);
-    socket.on('connect_error', () => setError('AI Service Offline'));
-
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-
-    return () => {
-      socket.off('ai-response', handleAiResponse);
-      socket.off('connect_error');
-    };
   }, [data.title, data.content, data.bgColor, data.fontSize, data.imageUrl, data.isDarkMode]);
 
   const handleEdit = useCallback(() => {
@@ -160,14 +141,25 @@ const NoteNode = memo(({ id, data }) => {
     }
   }, []);
 
-  const handleAiProcess = useCallback(() => {
+  const handleAiProcess = useCallback(async () => {
     if (!content.trim()) {
       setError('Please write some content first');
       return;
     }
     setIsLoadingAI(true);
     setError(null);
-    socket.emit('ai-process', { task: aiTask, prompt: content });
+    try {
+      const response = await processAi({ task: aiTask, prompt: content });
+      setIsLoadingAI(false);
+      if (response.success) {
+        setAiResponse(response.result || response);
+      } else {
+        setError(response.error || 'AI Task Failed');
+      }
+    } catch (err) {
+      setIsLoadingAI(false);
+      setError(err.response?.data?.detail || err.message || 'Failed to generate AI response');
+    }
   }, [content, aiTask]);
 
   const getBgStyleValue = useCallback((color) => {
